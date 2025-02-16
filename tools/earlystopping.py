@@ -21,7 +21,7 @@ class EarlyStopping:
         self.F2 = 0
         self.F3 = 0
         self.F4 = 0
-        self.val_loss_min = np.Inf
+        self.val_loss_min = np.inf
 
     def __call__(self, val_loss, accs,F1,F2,F3,F4,model,modelname,str):
 
@@ -57,4 +57,4 @@ class EarlyStopping:
         # if self.verbose:
         #     print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(self.val_loss_min,val_loss))
         torch.save(model.state_dict(),modelname+str+'.m')
-        self.val_loss_min = val_loss
+        self.val_loss_min = np.inf

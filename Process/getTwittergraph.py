@@ -5,8 +5,6 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 import sys
 import random
-from queue import Queue
-import copy
 
 cwd=os.getcwd()
 class Node_tweet(object):
@@ -28,12 +26,10 @@ def str2matrix(Str):  # str = index:wordfreq index:wordfreq
     return wordFreq, wordIndex
 
 def constructMat(tree):
-
     index2node = {}
     for i in tree:
         node = Node_tweet(idx=i)
         index2node[i] = node
-
     for j in tree:
         indexC = j
         indexP = tree[j]['parent']
@@ -68,19 +64,6 @@ def constructMat(tree):
         x_word.append(index2node[index_i+1].word)
         x_index.append(index2node[index_i+1].index)
     edgematrix=[row,col]
-
-    ############### generate subgraph ########
-    # mask = [0 for _ in range(len(index2node))]
-    # mask[rootindex] = 1
-    # root_node = index2node[int(rootindex+1)]
-    # que = root_node.children.copy()
-    # while len(que)>0:
-    #     cur = que.pop()
-    #     if random.random() >= 0.6:
-    #         mask[int(cur.idx)-1] = 1
-    #         for child in cur.children:
-    #             que.append(child)
-
     return x_word, x_index, edgematrix,rootfeat,rootindex
 
 def getfeature(x_word,x_index):
@@ -98,7 +81,6 @@ def main(obj):
         line = line.rstrip()
         eid, indexP, indexC = line.split('\t')[0], line.split('\t')[1], int(line.split('\t')[2])
         max_degree, maxL, Vec = int(line.split('\t')[3]), int(line.split('\t')[4]), line.split('\t')[5]
-
         if not treeDic.__contains__(eid):
             treeDic[eid] = {}
         treeDic[eid][indexC] = {'parent': indexP, 'max_degree': max_degree, 'maxL': maxL, 'vec': Vec}
@@ -109,62 +91,42 @@ def main(obj):
 
     print("loading tree label")
     event, y = [], []
-    l1 = l2 = l3 = l4 = 0
     labelDic = {}
     for line in open(labelPath):
         line = line.rstrip()
         label, eid = line.split('\t')[0], line.split('\t')[2]
         label=label.lower()
         event.append(eid)
-        if label in labelset_nonR:
-            labelDic[eid]=0
-            l1 += 1
-        if label  in labelset_f:
-            labelDic[eid]=1
-            l2 += 1
-        if label  in labelset_t:
-            labelDic[eid]=2
-            l3 += 1
-        if label  in labelset_u:
-            labelDic[eid]=3
-            l4 += 1
+        labelDic[eid] = {'news': 0, 'non-rumor': 0, 'false': 1, 'true': 2, 'unverified': 3}.get(label, -1)
+    
     print(len(labelDic))
-    print(l1, l2, l3, l4)
+    
+    def loadEid(event, id, y):
+        if event is None or len(event) < 2:
+            return None
+        x_word, x_index, tree, rootfeat, rootindex = constructMat(event)
+        x_x = getfeature(x_word, x_index)
+        
+        # Shuffling
+        x_pos = x_x.copy()
+        if rootindex == 0:
+            idx = list(range(1, len(x_pos)))
+        elif rootindex == len(x_x) - 1:
+            idx = list(range(rootindex))
+        else:
+            idx = list(range(rootindex)) + list(range(rootindex+1, len(x_x)))
+        random.shuffle(idx)
+        x_pos[idx] = x_x[idx]
+        
+        save_dir = os.path.join(cwd, 'gen', obj + 'graph_shuffled')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        np.savez(os.path.join(save_dir, id + '.npz'), x=x_x, x_pos=x_pos, root=rootfeat, edgeindex=tree, rootindex=rootindex, y=y)
 
-    def loadEid(event,id,y):
-        if event is None:
-            return None
-        if len(event) < 2:
-            return None
-        if len(event)>1:
-            x_word, x_index, tree, rootfeat, rootindex = constructMat(event)
-            x_x = getfeature(x_word, x_index)
-            rootfeat, tree, x_x, rootindex, y = np.array(rootfeat), np.array(tree), np.array(x_x), np.array(
-                rootindex), np.array(y)
-
-            x_pos = x_x.copy()
-            if rootindex == 0:
-                idx = list(range(1, len(x_pos)))
-                idx_shuffle = idx.copy()
-                random.shuffle(idx_shuffle)
-                x_pos[idx] = x_pos[idx_shuffle]
-            elif rootindex == len(x_x) - 1:
-                idx = list(range(rootindex))
-                idx_shuffle = idx.copy()
-                random.shuffle(idx_shuffle)
-                x_pos[idx] = x_pos[idx_shuffle]
-            else:
-                idx = list(range(rootindex)) + list(range(rootindex+1, len(x_x)))
-                idx_shuffle = idx.copy()
-                random.shuffle(idx_shuffle)
-                x_pos[idx] = x_pos[idx_shuffle]
-                                                                    # x_pos not used
-            np.savez( os.path.join(cwd, 'data/'+obj+'graph/'+id+'.npz'), x=x_x,x_pos=x_pos,root=rootfeat,edgeindex=tree,rootindex=rootindex,y=y)
-            return None
-    print("loading dataset", )
-    Parallel(n_jobs=30, backend='threading')(delayed(loadEid)(treeDic[eid] if eid in treeDic else None,eid,labelDic[eid]) for eid in tqdm(event))
+    print("loading dataset")
+    Parallel(n_jobs=30, backend='threading')(delayed(loadEid)(treeDic.get(eid), eid, labelDic[eid]) for eid in tqdm(event))
     return
 
 if __name__ == '__main__':
-    obj= sys.argv[1]
+    obj = sys.argv[1]
     main(obj)

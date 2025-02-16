@@ -13,7 +13,7 @@ def collate_fn(data):
 
 class BiGraphDataset(Dataset):
     def __init__(self, fold_x, treeDic,lower=2, upper=100000, tddroprate=0,budroprate=0,
-                 data_path=os.path.join('..','..', 'data', 'Twitter16graph')):
+                 data_path=os.path.join('E:\Baselines\RDEA\gen\Twitter16graph16')):
         self.fold_x = list(filter(lambda id: id in treeDic and len(treeDic[id]) >= lower and len(treeDic[id]) <= upper, fold_x))
         self.treeDic = treeDic
         self.data_path = data_path

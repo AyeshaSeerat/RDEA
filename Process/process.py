@@ -21,7 +21,7 @@ def loadTree(dataname):
 ################################# load data ###################################
 
 def loadBiData(dataname, treeDic, fold_x_train, fold_x_test, TDdroprate,BUdroprate):
-    data_path = os.path.join(cwd,'data', dataname + 'graph')
+    data_path = os.path.join(cwd,'E:\Baselines\RDEA\gen\Twitter16graph16')
     print("loading train set", )
     traindata_list = BiGraphDataset(fold_x_train, treeDic, tddroprate=TDdroprate, budroprate=BUdroprate, data_path=data_path)
     print("train no:", len(traindata_list))

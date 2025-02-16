@@ -1,0 +1,6 @@
+# Ignore specific folders
+logs/
+
+data/
+gen/
+__pycache__/

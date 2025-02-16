@@ -24,7 +24,7 @@ def classify(treeDic, x_test  , x_train,TDdroprate,BUdroprate,lr, weight_decay,p
         optimizer = th.optim.Adam(unsup_model.parameters(), lr=lr, weight_decay=weight_decay)
         unsup_model.train()
         traindata_list, _ = loadBiData(dataname, treeDic, x_train+x_test, x_test, 0.2, 0.2)
-        train_loader = DataLoader(traindata_list, batch_size=batchsize, shuffle=True, num_workers=4)
+        train_loader = DataLoader(traindata_list, batch_size=batchsize, shuffle=True, num_workers=0)
         batch_idx = 0
         loss_all = 0
         tqdm_train_loader = tqdm(train_loader)
@@ -59,8 +59,8 @@ def classify(treeDic, x_test  , x_train,TDdroprate,BUdroprate,lr, weight_decay,p
     early_stopping = EarlyStopping(patience=10, verbose=True)
     for epoch in range(n_epochs):
         traindata_list, testdata_list = loadBiData(dataname, treeDic, x_train, x_test, TDdroprate,BUdroprate)
-        train_loader = DataLoader(traindata_list, batch_size=batchsize, shuffle=True, num_workers=4)
-        test_loader = DataLoader(testdata_list, batch_size=batchsize, shuffle=True, num_workers=4)
+        train_loader = DataLoader(traindata_list, batch_size=batchsize, shuffle=True, num_workers=0)
+        test_loader = DataLoader(testdata_list, batch_size=batchsize, shuffle=True, num_workers=0)
         avg_loss = []
         avg_acc = []
         batch_idx = 0
@@ -168,11 +168,10 @@ patience=10
 batchsize=128
 TDdroprate=0.4
 BUdroprate=0.4
-datasetname=sys.argv[1] #"Twitter15"、"Twitter16"
-iterations=int(sys.argv[2])
+datasetname= "Twitter16" #"Twitter15"、"Twitter16"
+iterations=1
 model="RDEA"
 device = th.device('cuda:0' if th.cuda.is_available() else 'cpu')
-
 n_epochs=200
 # for unsup_epoch in range(30):
 test_accs = []
